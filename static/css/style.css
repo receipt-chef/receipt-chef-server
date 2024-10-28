@@ -1,0 +1,97 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: white;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.app-view {
+    text-align: center;
+    width: 50%;
+    max-width: 400px;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    background-color: #3a53f0;
+}
+
+.chef-icon {
+    width: 120px;
+    height: 120px;
+    background: url('../images/chef-icon.png') center/contain no-repeat;
+    margin: 0 auto 20px auto;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.wave {
+    font-size: 30px;
+}
+
+p {
+    font-size: 16px;
+    margin-bottom: 30px;
+}
+
+.indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background-color: #cccccc;
+    border-radius: 50%;
+    margin: 0 5px;
+}
+
+.dot.active {
+    background-color: #6f8cfc;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login-btn,
+.signup-btn {
+    border: none;
+    padding: 15px;
+    font-size: 18px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-btn {
+    background-color: transparent;
+    color: white;
+    border: 1px solid white;
+}
+
+.login-btn:hover {
+    background-color: #ffffff;
+    color: #3a53f0;
+}
+
+.signup-btn {
+    background-color: white;
+    color: #3a53f0;
+}
+
+.signup-btn:hover {
+    background-color: #f0f0f0;
+}
