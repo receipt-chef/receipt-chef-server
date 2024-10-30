@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Stream and Capture</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#captureBtn').click(function() {
+                $.post('/capture', function(data) {
+                    $('#result').text(data.result);
+                    if (data.url) {
+                        $('#capturedImage').attr('src', data.url).show();
+                    } else {
+                        $('#capturedImage').hide();
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Camera Stream and Capture</h1>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    <br>
+    <button id="captureBtn">Capture and Upload</button>
+    <p id="result"></p>
+    <img id="capturedImage" style="display:none; max-width:640px; max-height:480px;">
+</body>
+</html>

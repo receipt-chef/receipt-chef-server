@@ -4,7 +4,35 @@ import os
 import uuid
 from database import get_receipt_links
 from ocr import process_image_for_ocr, display_text_data
+from video import generate_frames, capture_and_upload
 
+from dotenv import load_dotenv
+from flask import Response
+# .env 파일 로드
+load_dotenv()
+
+# 애플리케이션 로거 설정
+import logging
+from logging.handlers import RotatingFileHandler
+
+app_logger = logging.getLogger('app')
+# app_logger.setLevel(logging.DEBUG)
+app_logger.setLevel(logging.INFO)
+
+# 파일 핸들러 (애플리케이션 로그용)
+file_handler = RotatingFileHandler('app.log', maxBytes=1024 * 1024 * 100, backupCount=20)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+app_logger.addHandler(file_handler)
+
+# 콘솔 핸들러
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+app_logger.addHandler(console_handler)
+
+# boto3 및 다른 라이브러리의 로그 레벨 조정
+logging.getLogger('boto3').setLevel(logging.WARNING)
+logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 app = Flask(__name__)
 
@@ -70,7 +98,25 @@ def process_receipt():
         print(f"Error in process_receipt: {e}")
         return jsonify({'error': str(e)}), 500
     
-    
+@app.route('/video')
+def video():
+  app_logger.info("Index page accessed")
+  return render_template('video.html')
+
+@app.route('/video_feed')
+def video_feed():
+  app_logger.info("Video feed accessed")
+  return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/capture', methods=['POST'])
+def capture():
+  app_logger.info("Capture route accessed")
+  try:
+      url, result = capture_and_upload()
+      return jsonify({'url': url, 'result': result})
+  except Exception as e:
+      app_logger.error(f"Error in capture route: {str(e)}")
+      return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
