@@ -7,9 +7,21 @@
     <link rel="stylesheet" href="../static/css/home.css">
 </head>
 <body>
-    <h1>영수증 셰프</h1>
+    <header>
+        <div class="header-content">
+            <img src="/static/images/chef-icon.png" alt="Chef Icon" class="chef-icon">
+            <h1>영수증 셰프</h1>
+            <img src="/static/images/cart-icon.png" alt="Cart Icon" class="cart-icon">
+        </div>
+    </header>
     <h2>일주일 식단</h2>
     <div class="receipt-list" id="receipt-list"></div>
+    <footer>
+        <div class="scan-placeholder">
+            <img src="/static/images/scan-icon.png" alt="Scan Icon" class="scan-icon">
+            <p>Scan</p>
+        </div>
+    </footer>
     <script>
         async function fetchReceipts() {
             try {
@@ -17,29 +29,30 @@
                 const data = await response.json();
                 const receiptList = document.getElementById('receipt-list');
 
-                // Clear any existing items before populating
                 receiptList.innerHTML = '';
 
                 if (data.receipt_links.length > 0) {
-                    data.receipt_links.forEach(([receipt_id, receipt_url]) => {
-                        if (receipt_url) { // Only process valid URLs
+                    data.receipt_links.forEach((receipt) => {
+                        const { receipt_id, url: receipt_url } = receipt;
+                        if (receipt_url) {
                             const receiptItem = document.createElement('div');
                             receiptItem.classList.add('receipt-item');
 
                             const img = document.createElement('img');
                             img.src = receipt_url;
                             img.alt = 'Receipt Image';
+                            img.classList.add('receipt-image');
                             img.onerror = () => {
-                                img.alt = 'Image not available'; // Handle broken image link
+                                img.alt = 'Image not available'; 
                             };
 
-                            const link = document.createElement('a');
-                            link.href = `/receipt/${receipt_id}`;
-                            link.innerText = '텍스트 추출하기';
-                            link.classList.add('extract-link');
+                            const button = document.createElement('button');
+                            button.innerText = '식단';
+                            button.classList.add('extract-link');
+                            button.onclick = () => processReceipt(receipt_url);
 
                             receiptItem.appendChild(img);
-                            receiptItem.appendChild(link);
+                            receiptItem.appendChild(button);
                             receiptList.appendChild(receiptItem);
                         }
                     });
@@ -47,12 +60,35 @@
                     receiptList.innerHTML = `
                         <div class="no-receipts">
                             <p>마트 영수증을 촬영해주세요!</p>
-                            <img src="/static/images/arrow.png" alt="Scan placeholder">
+                            <img src="/static/images/arrow.png" alt="Scan placeholder" class="placeholder-image">
                         </div>`;
                 }
             } catch (error) {
                 console.error('Error fetching receipts:', error);
                 receiptList.innerHTML = `<p>영수증을 가져오는 중 오류가 발생했습니다.</p>`;
+            }
+        }
+
+        async function processReceipt(imageUrl) {
+            try {
+                const response = await fetch('/process_receipt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`OCR Result:\n${data.receipt_text}`);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Error: ${errorData.error}`);
+                }
+            } catch (error) {
+                console.error('Error processing receipt:', error);
+                alert('Error processing receipt.');
             }
         }
 
