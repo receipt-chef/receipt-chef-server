@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, jsonify
 import boto3
 import os
 import uuid
@@ -35,36 +35,40 @@ def home():
 
 @app.route('/get_receipts', methods=['GET'])
 def get_receipts():
-    # Fetch receipt image links from the database
-    receipt_links = get_receipt_links()  # Returns a list of (receipt_id, receipt_key)
+    receipt_links = get_receipt_links()
     signed_urls = []
     for receipt_id, receipt_key in receipt_links:
-        # Check if receipt_key is a full URL
-        if receipt_key.startswith("http"):
-            url = receipt_key
-        else:
-            # Generate a presigned URL for S3 object
-            try:
-                url = s3.generate_presigned_url('get_object',
-                                                Params={'Bucket': BUCKET_NAME, 'Key': receipt_key},
-                                                ExpiresIn=3600,
-                                                HttpMethod='GET')
-            except Exception as e:
-                print(f"Error generating presigned URL for {receipt_key}: {e}")
-                url = None
-        signed_urls.append((receipt_id, url))
-    return {'receipt_links': signed_urls}
+        try:
+            # Ensure receipt_key does not contain additional prefixes
+            if receipt_key.startswith("https://"):
+                receipt_key = receipt_key.split(BUCKET_NAME + "/")[-1]
+            
+            # Generate the presigned URL
+            url = s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': BUCKET_NAME, 'Key': receipt_key},
+                ExpiresIn=3600,
+                HttpMethod='GET'
+            )
+            signed_urls.append({'receipt_id': receipt_id, 'url': url})
+            print(f"signed_urls URL for {signed_urls}")
+        except Exception as e:
+            print(f"Error generating presigned URL for {receipt_key}: {e}")
+    return jsonify({'receipt_links': signed_urls})
 
+@app.route('/process_receipt', methods=['POST'])
+def process_receipt():
+    image_url = request.json.get('image_url')
+    if not image_url:
+        return jsonify({'error': 'No image URL provided'}), 400
 
-@app.route('/receipt/<receipt_id>')
-def view_receipt(receipt_id):
     try:
-        s3_key = f"receipts/{receipt_id}"
-        ocr_result = process_image_for_ocr(s3_key)
-        extracted_text = display_text_data(ocr_result, receipt_id)
-        return render_template('receipt_details.html', receipt_id=receipt_id, ocr_result=extracted_text)
+        ocr_result = process_image_for_ocr(image_url)
+        extracted_text = display_text_data(ocr_result, image_url)
+        return jsonify({'receipt_text': extracted_text})
     except Exception as e:
-        return render_template('error.html', error=str(e))
+        print(f"Error in process_receipt: {e}")
+        return jsonify({'error': str(e)}), 500
     
     
 
