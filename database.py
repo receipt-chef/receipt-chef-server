@@ -34,7 +34,6 @@ def get_receipt_links():
         query = "SELECT receipt_no, receipt_file_path FROM RECEIPT"
         cursor.execute(query)
         receipt_links = cursor.fetchall()
-        print(receipt_links)
         if not receipt_links:
             print("No receipt links found in the database.")
         return [(row[0], row[1]) for row in receipt_links]
