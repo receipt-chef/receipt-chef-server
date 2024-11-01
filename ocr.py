@@ -123,8 +123,8 @@ def display_text_data(ocr_data, image_file):
             return result_text
         else:
             print("No high-confidence purchase items found.")
-            return f"{image_file}에서 유의미한 구매 품목을 찾을 수 없습니다."
+            return f"유의미한 구매 품목을 찾을 수 없습니다."
 
     except (KeyError, IndexError) as e:
         print(f"Error accessing text data fields: {e}")
-        return f"{image_file}에서 텍스트를 찾을 수 없습니다."
+        return f"텍스트를 찾을 수 없습니다."

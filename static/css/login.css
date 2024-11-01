@@ -40,7 +40,6 @@ form label {
     color: #666;
 }
 
-form input[type="text"],
 form input[type="email"],
 form input[type="password"] {
     width: 100%;
@@ -63,7 +62,7 @@ form input[type="password"] {
     cursor: pointer;
 }
 
-.signup-button {
+.login-button {
     width: 100%;
     padding: 12px;
     background-color: #4a5eff;
@@ -73,4 +72,16 @@ form input[type="password"] {
     font-size: 16px;
     cursor: pointer;
     margin-top: 10px;
+}
+
+.links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.links a {
+    color: #4a5eff;
+    text-decoration: none;
 }

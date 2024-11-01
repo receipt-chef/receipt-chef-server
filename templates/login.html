@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <link rel="stylesheet" href="../static/css/login.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-form">
+            <img src="../static/images/chef-icon.png" alt="Chef Icon" class="icon">
+            <h2>로그인</h2>
+            <form id="loginForm">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="username" placeholder="이메일을 입력하세요" required>
+                
+                <label for="password">비밀번호</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="Enter New Password" required>
+                    <span class="toggle-password">👁️</span>
+                </div>
+                
+                <button type="submit" class="login-button">로그인</button>
+                
+                <div class="links">
+                    <a href="#">비밀번호 찾기</a>
+                    <a href="/register">회원가입하기</a>
+                </div>
+            </form>
+            <p id="error-message" style="color: red; display: none;"></p>
+        </div>
+    </div>
+    <script src="togglePassword.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ username: email, password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Store userId in localStorage
+                    localStorage.setItem('userId', data.userId);
+                    // Redirect to the home page or show a success message
+                    window.location.href = '/home';
+                } else {
+                    // Display error message
+                    document.getElementById('error-message').textContent = data.error;
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('error-message').textContent = 'An unexpected error occurred.';
+                document.getElementById('error-message').style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>

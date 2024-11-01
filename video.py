@@ -7,7 +7,7 @@ import mysql.connector
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
-
+from flask import request
 from dotenv import load_dotenv
 
 # .env 파일 로드
@@ -62,6 +62,17 @@ db_config = {
 
 # 카메라 설정
 camera = cv2.VideoCapture(0)
+
+def generate_frames():
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+        else:
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 def get_db_connection():
   app_logger.info("Attempting to connect to the database")
@@ -118,79 +129,76 @@ def create_table_if_not_exists():
           app_logger.info("Database connection closed")
 
 def insert_receipt(receipt_image_url, member_id):
-  conn = get_db_connection()
-  if conn is None:
-      app_logger.error("Failed to insert receipt: Unable to connect to database")
-      return False
+    conn = get_db_connection()
+    if conn is None:
+        app_logger.error("Failed to insert receipt: Unable to connect to database")
+        return False
 
-  try:
-      cursor = conn.cursor()
-      insert_sql = '''
-      INSERT INTO mart_receipts (receipt_image_url, member_id)
-      VALUES (%s, %s);
-      '''
-      cursor.execute(insert_sql, (receipt_image_url, member_id))
-      conn.commit()
-      app_logger.info("Receipt info inserted successfully.")
-      return True
-  except mysql.connector.Error as err:
-      app_logger.error(f"Error inserting receipt info: {err}")
-      return False
-  finally:
-      if 'cursor' in locals():
-          cursor.close()
-      conn.close()
+    try:
+        cursor = conn.cursor()
+        insert_sql = '''
+        INSERT INTO RECEIPT (receipt_file_path, member_no)
+        VALUES (%s, %s);
+        '''
+        cursor.execute(insert_sql, (receipt_image_url, member_id))
+        conn.commit()
+        app_logger.info("Receipt info inserted successfully.")
+        return True
+    except mysql.connector.Error as err:
+        app_logger.error(f"Error inserting receipt info: {err}")
+        return False
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if conn.is_connected():
+            conn.close()
 
-def generate_frames():
-  while True:
-      success, frame = camera.read()
-      if not success:
-          break
-      else:
-          ret, buffer = cv2.imencode('.jpg', frame)
-          frame = buffer.tobytes()
-          yield (b'--frame\r\n'
-                  b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 def capture_and_upload():
-  ret, frame = camera.read()
-  if not ret:
-      app_logger.error("Failed to capture image")
-      return None, "Failed to capture image"
+    member_id = request.form.get('memberId')  # Get member_no from the request
+    if not member_id:
+        app_logger.error("No member ID provided")
+        return None, "No member ID provided"
 
-  # 이미지 파일 이름 생성 (현재 시간 기준)
-  timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-  filename = f"captured_image_{timestamp}.jpg"
+    ret, frame = camera.read()
+    if not ret:
+        app_logger.error("Failed to capture image")
+        return None, "Failed to capture image"
 
-  
-  # 이미지를 임시 파일로 저장
-  cv2.imwrite(filename, frame)
+    # Create a unique filename based on the current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"captured_image_{timestamp}.jpg"
 
-  # Object Storage에 업로드
-  try:
-      s3.upload_file(filename, BUCKET_NAME, filename)
-      app_logger.info(f"Image uploaded successfully: {filename}")
-      
-      image_url = f"https://{BUCKET_NAME}.{REGION_NAME}.object.ncloudstorage.com/{filename}"
-      
-      member_id = f"member_{timestamp}"
-      
-      if insert_receipt(image_url, member_id):
-          result = f"Image uploaded and receipt info saved: {filename}"
-          app_logger.info(result)
-      else:
-          result = "Image uploaded but failed to save receipt info"
-          app_logger.warning(result)
-  except Exception as e:
-      app_logger.error(f"Error in capture_and_upload: {str(e)}")
-      result = f"Error: {str(e)}"
-      image_url = None
-  finally:
-      if os.path.exists(filename):
-          os.remove(filename)
-      image_url = s3.generate_presigned_url('get_object',
-                                        Params={'Bucket': BUCKET_NAME,
-                                                'Key': filename},
-                                        ExpiresIn=3600)
-  
-  return image_url, result
+    # Save the image temporarily
+    cv2.imwrite(filename, frame)
+
+    # Upload the image to Object Storage
+    try:
+        s3.upload_file(filename, BUCKET_NAME, filename)
+        app_logger.info(f"Image uploaded successfully: {filename}")
+
+        # Remove the local file after successful upload
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        # Generate a presigned URL for the uploaded image that expires in 1 hour
+        image_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': BUCKET_NAME, 'Key': filename},
+            ExpiresIn=3600
+        )
+
+        # Insert the receipt record into the database
+        if insert_receipt(filename, member_id):  # Store only the filename (object key) in DB
+            result = f"Image uploaded and receipt info saved: {filename}"
+            app_logger.info(result)
+        else:
+            result = "Image uploaded but failed to save receipt info"
+            app_logger.warning(result)
+
+    except Exception as e:
+        app_logger.error(f"Error in capture_and_upload: {str(e)}")
+        result = f"Error: {str(e)}"
+        image_url = None
+
+    return image_url, result
