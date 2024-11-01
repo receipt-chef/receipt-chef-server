@@ -1,38 +1,57 @@
-!DOCTYPE html>
-<html lang="ko">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>영수증 셰프 - 회원가입</title>
-    <link rel="stylesheet" href="../static/css/style.css">
+    <title>회원가입</title>
+    <link rel="stylesheet" href="../static/css/signup.css">
 </head>
 <body>
-    <div class="signup-view">
-        <div class="chef-icon"></div>
-        <form class="signup-form">
-            <div class="input-group">
-                <label for="name">이름</label>
-                <input type="text" id="name" name="name" value="Jimmy Grammy">
-            </div>
-            <div class="input-group">
-                <label for="email">이메일</label>
-                <input type="email" id="email" name="email" value="jimmygrammy@gmail.com">
-            </div>
-            <div class="input-group">
-                <label for="password">비밀번호</label>
-                <input type="password" id="password" name="password" placeholder="Enter New Password">
-                <span class="show-password">표시</span>
-            </div>
-            <div class="input-group">
-                <label for="security-question">개인 질문</label>
-                <input type="text" id="security-question" name="security-question" placeholder="질병 이름">
-            </div>
-            <div class="input-group">
-                <label for="food-preference">무모호는 음식</label>
-                <input type="text" id="food-preference" name="food-preference" value="김치">
-            </div>
-            <button type="submit" class="signup-btn">회원가입 하기</button>
-        </form>
+    <div class="container">
+        <div class="signup-form">
+            <img src="../static/images/chef-icon.png" alt="Chef Icon" class="icon">
+            <h2>회원가입</h2>
+            <form action="/register" method="POST">
+                <label for="member_nm">이름</label>
+                <input type="text" id="member_nm" name="member_nm" placeholder="이름" required>
+
+                <label for="member_email">이메일</label>
+                <input type="email" id="member_email" name="member_email" placeholder="이메일을 입력하세요" required>
+
+                <label for="member_pw">비밀번호</label>
+                <div class="password-wrapper">
+                    <input type="password" id="member_pw" name="member_pw" placeholder="영문자, 숫자, 특수문자 조합 최대 12자리" required>
+                    <span class="toggle-password">👁️</span>
+                </div>
+
+                <label for="member_gender">성별</label>
+                <select id="member_gender" name="member_gender" required>
+                    <option value="M">남성</option>
+                    <option value="F">여성</option>
+                </select>
+
+                <label for="member_age">나이</label>
+                <input type="number" id="member_age" name="member_age" placeholder="나이" required>
+
+                <label for="avoid_food_cnt">못 먹는 음식</label>
+                <input type="text" id="avoid_food_cnt" name="avoid_food_cnt" placeholder="못 먹는 음식">
+
+                <label for="prefer_food_cnt">선호하는 음식</label>
+                <input type="text" id="prefer_food_cnt" name="prefer_food_cnt" placeholder="선호하는 음식">
+
+                <label for="disease_cnt">질병 이름</label>
+                <input type="text" id="disease_cnt" name="disease_cnt" placeholder="과민성대장증후군 등">
+
+                <label for="disease_yn">질병 보유 여부</label>
+                <select id="disease_yn" name="disease_yn">
+                    <option value="Y">예</option>
+                    <option value="N">아니오</option>
+                </select>
+
+                <button type="submit" class="signup-button">회원가입 하기</button>
+            </form>
+        </div>
     </div>
+    <script src="../static/js/togglePassword.js"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ from mysql.connector import errorcode
 import sys
 import signal
 import logging
+import bcrypt
 
 # MySQL 연결 설정
 db_config = {
@@ -23,19 +24,59 @@ def get_db_connection():
     except mysql.connector.Error as err:
         print("Error connecting to MySQL:", err)
         return None
-    
-def get_receipt_links():
+
+def register_user(member_nm, member_email, member_pw, member_gender, member_age, prefer_food_cnt, avoid_food_cnt, disease_yn, disease_cnt):
+    conn = get_db_connection()
+    if conn is None:
+        return False, "Database connection failed"
+    try:
+        cursor = conn.cursor()
+        hashed_password = bcrypt.hashpw(member_pw.encode('utf-8'), bcrypt.gensalt())
+        
+        query = """
+            INSERT INTO MEMBER 
+            (member_nm, member_email, member_gender, member_age, member_pw, prefer_food_cnt, avoid_food_cnt, disease_yn, disease_cnt) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (member_nm, member_email, member_gender, member_age, hashed_password, prefer_food_cnt, avoid_food_cnt, disease_yn, disease_cnt))
+        conn.commit()
+        return True, None
+    except mysql.connector.Error as err:
+        return False, str(err)
+    finally:
+        cursor.close()
+        conn.close()
+
+def authenticate_user(username, password):
+    conn = get_db_connection()
+    if conn is None:
+        return False, "Database connection failed"
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT member_no, member_pw FROM MEMBER WHERE member_email = %s", (username,))
+        member = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if member and bcrypt.checkpw(password.encode('utf-8'), member['member_pw'].encode('utf-8')):
+            return True, member
+        else:
+            return False, "Invalid username or password"
+    except mysql.connector.Error as err:
+        return False, str(err)
+
+def get_receipt_links(member_no):
     conn = get_db_connection()
     if conn is None:
         print("Failed to get database connection.")
         return []
     try:
         cursor = conn.cursor()
-        query = "SELECT receipt_no, receipt_file_path FROM RECEIPT"
-        cursor.execute(query)
+        query = "SELECT receipt_no, receipt_file_path FROM RECEIPT WHERE member_no = %s"
+        cursor.execute(query, (member_no,))
         receipt_links = cursor.fetchall()
         if not receipt_links:
-            print("No receipt links found in the database.")
+            print("No receipt links found in the database for this user.")
         return [(row[0], row[1]) for row in receipt_links]
     except mysql.connector.Error as err:
         print("Error fetching receipt links", err)
@@ -44,6 +85,7 @@ def get_receipt_links():
         if conn.is_connected():
             cursor.close()
             conn.close()
+
 
 
 if __name__ == '__main__':
