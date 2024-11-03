@@ -3,37 +3,9 @@ import json
 import time
 import uuid
 import requests
-from dotenv import load_dotenv
-from io import BytesIO
-
-# Load environment variables
-load_dotenv()
-
-# Clova configuration
-CLOVA_API_URL = os.getenv("CLOVA_API_URL")
-CLOVA_API_KEY = os.getenv("CLOVA_API_KEY")
-
-# 프리사인드 URL을 사용하여 이미지를 가져와 Clova OCR API로 보내는 함수.
-import os
-import json
-import requests
-import uuid
-import time
 from io import BytesIO
 from dotenv import load_dotenv
-
-# 환경 변수 로드
-load_dotenv()
-CLOVA_API_URL = os.getenv("CLOVA_API_URL")
-CLOVA_API_KEY = os.getenv("CLOVA_API_KEY")
-
-import os
-import json
-import requests
-import uuid
-import time
 from io import BytesIO
-from dotenv import load_dotenv
 
 # 환경 변수 로드
 load_dotenv()

@@ -40,8 +40,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 REGION_NAME = os.getenv("REGION_NAME")
 ENDPOINT_URL = os.getenv("ENDPOINT_URL")
 BUCKET_NAME = os.getenv("BUCKET_NAME")
-CLOVA_OCR_SECRET_KEY = os.getenv("CLOVA_OCR_SECRET_KEY")
-CLOVA_OCR_API_URL = os.getenv("CLOVA_OCR_API_URL")
 
 s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY, region_name=REGION_NAME, endpoint_url=ENDPOINT_URL)
 
