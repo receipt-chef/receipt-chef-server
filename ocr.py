@@ -6,6 +6,8 @@ import requests
 from io import BytesIO
 from dotenv import load_dotenv
 from io import BytesIO
+from clovax import completion_executor
+
 
 # 환경 변수 로드
 load_dotenv()
@@ -26,6 +28,7 @@ def process_image_for_ocr(image_url):
 
         image_bytes = BytesIO(response.content)
         print("URL에서 이미지 바이트 성공적으로 읽음.")
+        
 
         # OCR API 요청 헤더 설정
         headers = {
@@ -71,32 +74,20 @@ def process_image_for_ocr(image_url):
 
 
 # OCR로 추출한 데이터에서 구매 품목만 파싱하여 출력하는 함수
-def display_text_data(ocr_data, image_file):
-    print("Starting display_text_data function...")
-    try:
-        # OCR 결과의 'fields'에서 구매 품목 관련 텍스트 추출
-        text_data = ocr_data.get('images', [])[0].get('fields', [])
-        print(f"{image_file} OCR 결과:")
+def display_text_data(ocr_data):
+    text_data = ""
+    for field in ocr_data.get('images', [])[0].get('fields', []):
+        if field.get('inferConfidence', 0) > 0.9:
+            text_line = field.get('inferText', '').strip()
+            if text_line and not any(char.isdigit() for char in text_line):
+                text_data += f"{text_line}\n"
 
-        result_text = ""
-        for field in text_data:
-            # inferConfidence가 0.9 이상인 텍스트만 선택
-            if field.get('inferConfidence', 0) > 0.9:
-                text_line = field.get('inferText', '').strip()
-
-                # 특정 규칙을 추가하여 구매 품목 추출
-                # 예시: 숫자나 가격 패턴 필터링 (물품명만 포함하기 위해)
-                if text_line and not any(char.isdigit() for char in text_line):
-                    result_text += f"{text_line}\n"
-
-        if result_text:
-            print("Extracted purchase items:")
-            print(result_text)
-            return result_text
-        else:
-            print("No high-confidence purchase items found.")
-            return f"유의미한 구매 품목을 찾을 수 없습니다."
-
-    except (KeyError, IndexError) as e:
-        print(f"Error accessing text data fields: {e}")
-        return f"텍스트를 찾을 수 없습니다."
+    if text_data:
+        print("OCR TEXT DATA")
+        print(text_data)
+        
+        prompt = f"{text_data}\n일주일치 식단을 짜 줘."
+        clova_x_response = completion_executor.execute(prompt)
+        return clova_x_response
+    else:
+        return "유의미한 구매 품목을 찾을 수 없습니다."

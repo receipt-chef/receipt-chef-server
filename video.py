@@ -94,39 +94,39 @@ def get_db_connection():
       app_logger.error(f"Unexpected error in get_db_connection: {e}")
       raise
 
-def create_table_if_not_exists():
-  app_logger.info("Attempting to create table if not exists")
-  try:
-      conn = get_db_connection()
-      if conn is None:
-          app_logger.error("Failed to create table: Unable to connect to database")
-          return False
+# def create_table_if_not_exists():
+#   app_logger.info("Attempting to create table if not exists")
+#   try:
+#       conn = get_db_connection()
+#       if conn is None:
+#           app_logger.error("Failed to create table: Unable to connect to database")
+#           return False
 
-      cursor = conn.cursor()
-      create_table_sql = '''
-      CREATE TABLE IF NOT EXISTS mart_receipts (
-          receipt_id INT AUTO_INCREMENT PRIMARY KEY,
-          receipt_image_url VARCHAR(255) NOT NULL,
-          member_id VARCHAR(100) NOT NULL,
-          items LONGTEXT
-      );
-      '''
-      cursor.execute(create_table_sql)
-      conn.commit()
-      app_logger.info("Table created or already exists.")
-      return True
-  except mysql.connector.Error as err:
-      app_logger.error(f"MySQL Error: {err}")
-      return False
-  except Exception as e:
-      app_logger.error(f"Unexpected error in create_table_if_not_exists: {e}")
-      return False
-  finally:
-      if 'cursor' in locals():
-          cursor.close()
-      if 'conn' in locals() and conn.is_connected():
-          conn.close()
-          app_logger.info("Database connection closed")
+#       cursor = conn.cursor()
+#       create_table_sql = '''
+#       CREATE TABLE IF NOT EXISTS mart_receipts (
+#           receipt_id INT AUTO_INCREMENT PRIMARY KEY,
+#           receipt_image_url VARCHAR(255) NOT NULL,
+#           member_id VARCHAR(100) NOT NULL,
+#           items LONGTEXT
+#       );
+#       '''
+#       cursor.execute(create_table_sql)
+#       conn.commit()
+#       app_logger.info("Table created or already exists.")
+#       return True
+#   except mysql.connector.Error as err:
+#       app_logger.error(f"MySQL Error: {err}")
+#       return False
+#   except Exception as e:
+#       app_logger.error(f"Unexpected error in create_table_if_not_exists: {e}")
+#       return False
+#   finally:
+#       if 'cursor' in locals():
+#           cursor.close()
+#       if 'conn' in locals() and conn.is_connected():
+#           conn.close()
+#           app_logger.info("Database connection closed")
 
 def insert_receipt(receipt_image_url, member_id):
     conn = get_db_connection()

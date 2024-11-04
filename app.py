@@ -129,7 +129,6 @@ def get_receipts():
             print(f"Error generating presigned URL for {receipt_key}: {e}")
     return jsonify({'receipt_links': signed_urls})
 
-
 @app.route('/process_receipt', methods=['POST'])
 def process_receipt():
     image_url = request.json.get('image_url')
@@ -137,12 +136,20 @@ def process_receipt():
         return jsonify({'error': 'No image URL provided'}), 400
 
     try:
+        # Process image using Clova OCR to extract text data
         ocr_result = process_image_for_ocr(image_url)
-        extracted_text = display_text_data(ocr_result, image_url)
-        return jsonify({'receipt_text': extracted_text})
+        # Generate meal plan by sending OCR text to Clova X
+        meal_plan = display_text_data(ocr_result)
+
+        # Log and display the response for debugging
+        print("Clova X Meal Plan Response:", meal_plan)
+
+        return jsonify({'meal_plan': meal_plan})
     except Exception as e:
-        print(f"Error in process_receipt: {e}")
+        app_logger.error(f"Error in process_receipt: {e}")
         return jsonify({'error': str(e)}), 500
+
+
 
 # 사진 촬영
 @app.route('/video')
