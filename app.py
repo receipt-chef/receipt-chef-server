@@ -75,7 +75,7 @@ def register():
             member_age, prefer_food_cnt, avoid_food_cnt, disease_yn, disease_cnt
         )
         if success:
-            flash("회원가입이 성공적으로 완료되었습니다!", "success")
+            flash("회원가입이 성공적으로 완료되었습니다!!", "success")
             return redirect(url_for('login'))
         else:
             app.logger.error("Registration error: %s", error)
@@ -138,17 +138,16 @@ def process_receipt():
     try:
         # Process image using Clova OCR to extract text data
         ocr_result = process_image_for_ocr(image_url)
+        app_logger.info("OCR Result: %s", ocr_result)  # Log OCR result for debugging
+        
         # Generate meal plan by sending OCR text to Clova X
         meal_plan = display_text_data(ocr_result)
-
-        # Log and display the response for debugging
-        print("Clova X Meal Plan Response:", meal_plan)
+        app_logger.info("Clova X Meal Plan Response: %s", meal_plan)  # Log Clova X result for debugging
 
         return jsonify({'meal_plan': meal_plan})
     except Exception as e:
-        app_logger.error(f"Error in process_receipt: {e}")
+        app_logger.error(f"Error in process_receipt: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
-
 
 
 # 사진 촬영
