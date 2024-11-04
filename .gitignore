@@ -38,3 +38,5 @@ app.log
 next-env.d.ts
 
 *storybook.log
+.pyc
+__pycache__
