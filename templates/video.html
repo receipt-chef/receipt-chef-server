@@ -1,49 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera Stream and Capture</title>
-    <link rel="stylesheet" href="../static/css/video.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>카메라 촬영</header>
-        <div class="camera-view">
-            <img src="{{ url_for('video_feed') }}" alt="Camera Stream" class="camera-stream">
-        </div>
-        <div class="footer-controls">
-            <button class="control-button" id="cancelBtn">&#10005;</button> <!-- Cancel button -->
-            <button class="capture-button" id="captureBtn">&#9679;</button> <!-- Capture button -->
-            <button class="control-button" id="confirmBtn">&#10003;</button> <!-- Confirm button -->
-        </div>
-        <p id="result"></p>
-        <img id="capturedImage" style="display:none;" class="captured-image">
-    </div>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <img id="photo" alt="The screen capture will appear in this box.">
+    <button id="captureButton">Capture and Upload</button>
 
     <script>
-        $(document).ready(function() {
-            $('#captureBtn').click(function() {
-                const memberId = localStorage.getItem('userId'); // Get member_no from localStorage
-                
-                if (!memberId) {
-                    alert("User ID not found. Please log in.");
-                    return;
-                }
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const photo = document.getElementById('photo');
+        const captureButton = document.getElementById('captureButton');
+        const context = canvas.getContext('2d');
+        const memberId = localStorage.getItem('userId');
+        let isCaptured = false;
 
-                $.post('/capture', { memberId: memberId }, function(data) {
-                    $('#result').text(data.result);
-                    if (data.url) {
-                        $('#capturedImage').attr('src', data.url).show();
-                        window.location.href = '/home';
-                    } else {
-                        $('#capturedImage').hide();
-                        alert("Image upload failed. Please try again.");
-                    }
-                });
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(function(err) {
+                console.log("An error occurred: " + err);
             });
-        });
+
+        function sendFrame() {
+            if (!isCaptured) {
+                context.drawImage(video, 0, 0, 640, 480);
+                const data = canvas.toDataURL('image/jpeg');
+                
+                fetch('/video_feed', {
+                    method: 'POST',
+                    body: data
+                })
+                .then(response => response.blob())
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    photo.src = imageUrl;
+                });
+
+                setTimeout(sendFrame, 100);  // 10 FPS로 프레임 전송
+            }
+        }
+
+        function captureAndUpload() {
+            if (!isCaptured) {
+                context.drawImage(video, 0, 0, 640, 480);
+                const imageData = canvas.toDataURL('image/jpeg');
+
+                fetch('/capture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        memberId: memberId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Capture Success:', data);
+                    if (data.url) {
+                        console.log('data.url:', data.url)
+                        photo.src = data.url;
+                        isCaptured = true;
+                        captureButton.disabled = true;
+                        captureButton.textContent = 'Captured';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Capture Error:', error);
+                });
+            }
+        }
+
+        video.addEventListener('canplay', sendFrame);
+        captureButton.addEventListener('click', captureAndUpload);
     </script>
 </body>
 </html>

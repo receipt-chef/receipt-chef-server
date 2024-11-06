@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Stream and Capture</title>
+    <link rel="stylesheet" href="../static/css/video.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>카메라 촬영</header>
+        <div class="camera-view">
+            <img src="{{ url_for('video_feed') }}" alt="Camera Stream" class="camera-stream">
+        </div>
+        <div class="footer-controls">
+            <button class="control-button" id="cancelBtn">&#10005;</button> <!-- Cancel button -->
+            <button class="capture-button" id="captureBtn">&#9679;</button> <!-- Capture button -->
+            <button class="control-button" id="confirmBtn">&#10003;</button> <!-- Confirm button -->
+        </div>
+        <p id="result"></p>
+        <img id="capturedImage" style="display:none;" class="captured-image">
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#captureBtn').click(function() {
+                const memberId = localStorage.getItem('userId'); // Get member_no from localStorage
+                
+                if (!memberId) {
+                    alert("User ID not found. Please log in.");
+                    return;
+                }
+
+                $.post('/capture', { memberId: memberId }, function(data) {
+                    $('#result').text(data.result);
+                    if (data.url) {
+                        $('#capturedImage').attr('src', data.url).show();
+                        window.location.href = '/home';
+                    } else {
+                        $('#capturedImage').hide();
+                        alert("Image upload failed. Please try again.");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

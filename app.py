@@ -149,8 +149,6 @@ def process_receipt():
         app_logger.error(f"Error in process_receipt: {e}")
         return jsonify({'error': str(e)}), 500
 
-
-
 # 사진 촬영
 @app.route('/video')
 def video():
@@ -163,14 +161,24 @@ def video_feed():
   return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/capture', methods=['POST'])
+# def capture():
+#   app_logger.info("Capture route accessed")
+#   try:
+#       url, result = capture_and_upload()
+#       return jsonify({'url': url, 'result': result})
+#   except Exception as e:
+#       app_logger.error(f"Error in capture route: {str(e)}")
+#       return jsonify({'error': str(e)}), 500
 def capture():
-  app_logger.info("Capture route accessed")
-  try:
-      url, result = capture_and_upload()
-      return jsonify({'url': url, 'result': result})
-  except Exception as e:
-      app_logger.error(f"Error in capture route: {str(e)}")
-      return jsonify({'error': str(e)}), 500
+    app_logger.info("Capture route accessed")
+    try:
+        image_data = request.json['image']  # 클라이언트로부터 base64 인코딩된 이미지 데이터를 받습니다.
+        member_id = request.json['memberId']
+        url, result = capture_and_upload(image_data, member_id)
+        return jsonify({'url': url, 'result': result})
+    except Exception as e:
+        app_logger.error(f"Error in capture route: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

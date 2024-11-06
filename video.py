@@ -9,6 +9,8 @@ from logging.handlers import RotatingFileHandler
 import sys
 from flask import request
 from dotenv import load_dotenv
+import base64
+import numpy as np
 
 # .env 파일 로드
 load_dotenv()
@@ -61,19 +63,36 @@ db_config = {
 }
 
 # 카메라 설정
-camera = cv2.VideoCapture(0)
+# camera = cv2.VideoCapture(0)
 
+# def generate_frames():
+#     while True:
+#         success, frame = camera.read()
+#         if not success:
+#             break
+#         else:
+#             ret, buffer = cv2.imencode('.jpg', frame)
+#             frame = buffer.tobytes()
+#             yield (b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 def generate_frames():
     while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            ret, buffer = cv2.imencode('.jpg', frame)
+        frame = yield
+        if frame is not None:
+            # base64 디코딩 및 이미지로 변환
+            img_data = base64.b64decode(frame.split(',')[1])
+            nparr = np.frombuffer(img_data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            # 여기에서 필요한 이미지 처리를 수행할 수 있습니다.
+            # 예: img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            
+            # 처리된 이미지를 다시 인코딩
+            _, buffer = cv2.imencode('.jpg', img)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
+            
 def get_db_connection():
   app_logger.info("Attempting to connect to the database")
   app_logger.debug(f"Attempting to connect with: host={db_config['host']}, user={db_config['user']}, database={db_config['database']}")
@@ -154,26 +173,77 @@ def insert_receipt(receipt_image_url, member_id):
             conn.close()
 
 
-def capture_and_upload():
-    member_id = request.form.get('memberId')  # Get member_no from the request
+# def capture_and_upload():
+#     member_id = request.form.get('memberId')  # Get member_no from the request
+#     if not member_id:
+#         app_logger.error("No member ID provided")
+#         return None, "No member ID provided"
+
+#     ret, frame = camera.read()
+#     if not ret:
+#         app_logger.error("Failed to capture image")
+#         return None, "Failed to capture image"
+
+#     # Create a unique filename based on the current timestamp
+#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#     filename = f"captured_image_{timestamp}.jpg"
+
+#     # Save the image temporarily
+#     cv2.imwrite(filename, frame)
+
+#     # Upload the image to Object Storage
+#     try:
+#         s3.upload_file(filename, BUCKET_NAME, filename)
+#         app_logger.info(f"Image uploaded successfully: {filename}")
+
+#         # Remove the local file after successful upload
+#         if os.path.exists(filename):
+#             os.remove(filename)
+
+#         # Generate a presigned URL for the uploaded image that expires in 1 hour
+#         image_url = s3.generate_presigned_url(
+#             'get_object',
+#             Params={'Bucket': BUCKET_NAME, 'Key': filename},
+#             ExpiresIn=3600
+#         )
+
+#         # Insert the receipt record into the database
+#         if insert_receipt(filename, member_id):  # Store only the filename (object key) in DB
+#             result = f"Image uploaded and receipt info saved: {filename}"
+#             app_logger.info(result)
+#         else:
+#             result = "Image uploaded but failed to save receipt info"
+#             app_logger.warning(result)
+
+#     except Exception as e:
+#         app_logger.error(f"Error in capture_and_upload: {str(e)}")
+#         result = f"Error: {str(e)}"
+#         image_url = None
+
+#     return image_url, result
+def capture_and_upload(image_data, member_id):
     if not member_id:
         app_logger.error("No member ID provided")
         return None, "No member ID provided"
 
-    ret, frame = camera.read()
-    if not ret:
-        app_logger.error("Failed to capture image")
-        return None, "Failed to capture image"
+    if not image_data:
+        app_logger.error("No image data provided")
+        return None, "No image data provided"
 
-    # Create a unique filename based on the current timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"captured_image_{timestamp}.jpg"
-
-    # Save the image temporarily
-    cv2.imwrite(filename, frame)
-
-    # Upload the image to Object Storage
     try:
+        # Base64 디코딩 및 이미지로 변환
+        img_data = base64.b64decode(image_data.split(',')[1])
+        nparr = np.frombuffer(img_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # Create a unique filename based on the current timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"captured_image_{timestamp}.jpg"
+
+        # Save the image temporarily
+        cv2.imwrite(filename, frame)
+
+        # Upload the image to Object Storage
         s3.upload_file(filename, BUCKET_NAME, filename)
         app_logger.info(f"Image uploaded successfully: {filename}")
 
