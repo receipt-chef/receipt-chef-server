@@ -75,7 +75,7 @@ h2 {
     border-radius: 4px;
     text-decoration: none;
     font-weight: bold;
-    width: 20%;
+    cursor: pointer;
 }
 
 .extract-link:hover {
@@ -114,4 +114,42 @@ footer {
 .scan-icon {
     width: 30px;
     height: 30px;
+}
+
+#loading-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 18px;
+    border-radius: 5px;
+    z-index: 1000;
+    text-align: center;
+}
+
+.scan-button {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #3f51b5;
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.scan-button:hover {
+    background-color: #004080;
+    transform: scale(1.05);
+}
+
+.scan-button:active {
+    background-color: #003366;
+    transform: scale(0.98);
 }

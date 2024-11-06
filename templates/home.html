@@ -9,24 +9,24 @@
 <body>
     <header>
         <div class="header-content">
-            <img src="../static/images/chef-icon.png" alt="Chef Icon" class="chef-icon">
-            <h1>영수증 셰프</h1>
-            <img src="../static/images/cart.png" alt="Cart Icon" class="cart-icon">
+            <h1>👨‍🍳 영수증 셰프 🧾</h1>
         </div>
     </header>
 
     <h2>일주일 식단</h2>
     <div class="receipt-list" id="receipt-list"></div>
     
-    <!-- Section to display the generated meal plan -->
+    <!-- 로딩 메시지를 위한 요소 -->
+    <div id="loading-message" style="display: none;">로딩 중...🍀</div>
+    
     <section id="meal-plan-section" class="meal-plan-section" style="display: none;">
-        <h3>Generated Weekly Meal Plan</h3>
+        <h3>셰프 부르기👨‍🍳</h3>
         <div id="meal-plan-content" class="meal-plan-content"></div>
     </section>
-
+ㄹ
     <footer>
         <div class="scan-placeholder">
-            <button class="scan-button" onclick="navigateToVideo()">Scan</button>
+            <button class="scan-button" onclick="navigateToVideo()">영수증 촬영하기 📸 </button>
         </div>
     </footer>
 
@@ -64,7 +64,7 @@
                             img.onerror = () => { img.alt = 'Image not available'; };
 
                             const button = document.createElement('button');
-                            button.innerText = 'Generate Meal Plan';
+                            button.innerText = '셰프 부르기👨‍🍳';
                             button.classList.add('extract-link');
                             button.onclick = () => processReceipt(receipt_url);
 
@@ -87,6 +87,9 @@
         }
 
         async function processReceipt(imageUrl) {
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.style.display = 'block';  // 로딩 메시지 표시
+
             try {
                 const response = await fetch('/process_receipt', {
                     method: 'POST',
@@ -115,8 +118,11 @@
             } catch (error) {
                 console.error('Error in processReceipt:', error);
                 alert('An error occurred while processing the receipt.');
+            } finally {
+                loadingMessage.style.display = 'none';  // 로딩 메시지 숨김
             }
         }
+
 
         async function fetchSavedMealPlan() {
             const mealPlanId = localStorage.getItem('meal_plan_id');

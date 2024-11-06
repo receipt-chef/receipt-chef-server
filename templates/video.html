@@ -10,16 +10,14 @@
 <body>
     <header>
         <div class="header-content">
-            <img src="../static/images/chef-icon.png" alt="Chef Icon" class="chef-icon">
-            <h1>영수증 셰프</h1>
-            <img src="../static/images/cart.png" alt="Cart Icon" class="cart-icon">
+            <h1>👨‍🍳 영수증 셰프 🧾</h1>
         </div>
     </header>
 
     <!-- Camera Capture -->
-    <!-- <button onclick="startCamera()">Start Camera</button>
+    <button onclick="startCamera()">Start Camera</button>
     <video id="video" width="300" height="200" autoplay></video>
-    <button onclick="captureImage()">Capture</button> -->
+    <button onclick="captureImage()">Capture</button>
 
     <!-- File Upload -->
     <div class="file-input-container">
@@ -55,8 +53,6 @@
 
         function uploadImage(imageBlob) {
             const formData = new FormData();
-
-            // Retrieve `userId` from local storage and set as `memberId`
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 alert("User ID not found. Please log in.");

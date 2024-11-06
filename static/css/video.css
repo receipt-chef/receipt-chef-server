@@ -3,6 +3,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    color: white;
 }
 .chef-icon, .cart-icon {
     width: 30px;
