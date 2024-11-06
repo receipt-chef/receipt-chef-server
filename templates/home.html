@@ -98,15 +98,13 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Received data:', data);  // Debugging line
+                    console.log('Received data:', data);
 
                     if (data.meal_plan_id) {
-                        // Redirect with meal_plan_id
-                        const mealPlanId = data.meal_plan_id;
-                        console.log('Redirecting to meal plan with ID:', mealPlanId);  // Debugging line
-                        window.location.href = `/meal_plan?meal_plan_id=${mealPlanId}`;
+                        localStorage.setItem('meal_plan_id', data.meal_plan_id);
+                        window.location.href = `/meal/${data.meal_plan_id}`;
                     } else {
-                        console.error('Meal plan ID missing in server response.');
+                        console.error('Meal plan missing in server response.');
                         alert("Failed to generate meal plan.");
                     }
                 } else {
@@ -120,17 +118,43 @@
             }
         }
 
+        async function fetchSavedMealPlan() {
+            const mealPlanId = localStorage.getItem('meal_plan_id');
+            if (!mealPlanId) {
+                alert('No saved meal plan found.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/meal/${mealPlanId}`);
+                if (response.ok) {
+                    const mealPlan = await response.json();
+                    displayMealPlan(mealPlan);
+                } else {
+                    console.error('Error fetching saved meal plan.');
+                    alert('Failed to load saved meal plan.');
+                }
+            } catch (error) {
+                console.error('Error in fetchSavedMealPlan:', error);
+                alert('An error occurred while retrieving the meal plan.');
+            }
+        }
 
         function displayMealPlan(mealPlan) {
             const mealPlanSection = document.getElementById('meal-plan-section');
             const mealPlanContent = document.getElementById('meal-plan-content');
 
-            // Show meal plan section and set content
             mealPlanSection.style.display = 'block';
-            mealPlanContent.innerText = mealPlan || "No meal plan generated.";
+            mealPlanContent.innerHTML = "";
+
+            mealPlan.forEach(day => {
+                const dayContent = `<h4>${day.day}</h4><p>Breakfast: ${day.breakfast}, Lunch: ${day.lunch}, Dinner: ${day.dinner}</p>`;
+                mealPlanContent.innerHTML += dayContent;
+            });
         }
 
         window.onload = fetchReceipts;
+        
     </script>
 </body>
 </html>

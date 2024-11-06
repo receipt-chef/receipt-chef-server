@@ -86,7 +86,7 @@ def display_text_data(ocr_data):
         print("OCR TEXT DATA")
         print(text_data)
         
-        prompt = f"{text_data}\n일주일치 식단을 짜 줘."
+        prompt = f"{text_data}\n 이 항목들을 보고 요일별로 저녁 식단과 조리방법을 구체적으로 작성해서 알려줘"
         clova_x_response = completion_executor.execute(prompt)
         return clova_x_response
     else:
