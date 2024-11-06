@@ -14,12 +14,12 @@ class CompletionExecutor:
         self._api_key_primary_val = os.getenv("CLOVA_X_API_KEY_PRIMARY_VAL")
         self._request_id = str(uuid.uuid4())
 
-        # Log the host to verify it's loaded correctly
         if not self._host:
             raise ValueError("CLOVA_X_HOST is not set. Check your environment variables.")
         print(f"Clova X Host URL: {self._host}")
 
     def execute(self, text_data):
+        print("CLOVA X 에게 보내는 데이터", text_data)
         headers = {
             'X-NCP-CLOVASTUDIO-API-KEY': self._api_key,
             'X-NCP-APIGW-API-KEY': self._api_key_primary_val,
@@ -29,8 +29,8 @@ class CompletionExecutor:
         }
 
         request_data = {
-            'messages': [{"role": "system", "content": "당신은 영수증을 분석하는 AI 어시스턴트입니다. 영수증 데이터를 보고 일주일치 식단을 만들어주세요."},
-                         {"role": "user", "content": text_data}, {"role": "user", "content": "구체적이게 요일별로 식단을 짜줘."},{"role": "user", "content": "응답값을 표로 만들어줘"}],
+            'messages': [{"role": "system", "content": "당신은 영수증을 분석하는 AI 어시스턴트입니다. 영수증 데이터를 보고 일주일치 식단을 만들어주세요."}, 
+                         {"role": "user", "content": text_data}],
             "topP" : 0.8,
             "topK" : 5,
             "maxTokens" : 1024,
@@ -48,13 +48,17 @@ class CompletionExecutor:
             stream=True
         )
 
-        # Parse response
-        processed_text = []
-        for line in response.iter_lines():
-            if line:
-                processed_text.append(line.decode("utf-8"))
+        lines = list(response.iter_lines())
+        processed_text = None
 
+        for i in range(len(lines) - 1, 0, -1):
+            line = lines[i].decode("utf-8")
+            if 'data:' in line and 'event:result' in lines[i - 1].decode("utf-8"):
+                data_start = line.find("data:") + 5
+                processed_text = line[data_start:].strip()
+                break
+
+        print("최종 추출된 데이터:", processed_text)
         return processed_text
 
-# Initialize the executor outside the class for easier use in `app.py`
 completion_executor = CompletionExecutor()

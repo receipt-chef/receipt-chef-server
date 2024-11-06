@@ -4,13 +4,14 @@ from ocr import process_image_for_ocr, display_text_data
 from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
-# from video import generate_frames, capture_and_upload
-
 from dotenv import load_dotenv
 from flask import Response
 import boto3
 import os
 from video import video_bp
+from meal import save_meal_plan, get_meal_plan
+from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
+import json
 
 app = Flask(__name__)
 
@@ -54,14 +55,14 @@ s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECR
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# 업로드 폴더가 없으면 생성
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
+# 메인 화면
 @app.route('/')
 def main():
     return render_template('index.html')
 
+'''
+회원 부분
+'''
 # 회원가입
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -107,11 +108,15 @@ def login():
     
     return render_template('login.html')
 
+'''
+홈 부분
+'''
 # 홈 화면
 @app.route('/home')
 def home():
     return render_template('home.html')
 
+# 영수증 이미지 가져오는 함수
 @app.route('/get_receipts', methods=['GET'])
 def get_receipts():
     user_id = request.args.get('userId')
@@ -137,28 +142,50 @@ def get_receipts():
             print(f"Error generating presigned URL for {receipt_key}: {e}")
     return jsonify({'receipt_links': signed_urls})
 
-@app.route('/process_receipt', methods=['POST'])
-def process_receipt():
-    image_url = request.json.get('image_url')
-    if not image_url:
-        return jsonify({'error': 'No image URL provided'}), 400
+'''
+카메라 부분
+'''
+# 이미지 업로드 함수
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    member_id = request.form.get('memberId')
+    image = request.files.get('image')
 
+    if not member_id or not image:
+        app_logger.error("Missing member ID or image in request.")
+        return jsonify({'error': 'Missing member ID or image in request'}), 400
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"captured_image_{timestamp}.jpg"
+
+    image.save(filename)
     try:
-        # Process image using Clova OCR to extract text data
-        ocr_result = process_image_for_ocr(image_url)
-        app_logger.info("OCR Result: %s", ocr_result)  # Log OCR result for debugging
-        
-        # Generate meal plan by sending OCR text to Clova X
-        meal_plan = display_text_data(ocr_result)
-        app_logger.info("Clova X Meal Plan Response: %s", meal_plan)  # Log Clova X result for debugging
+        s3.upload_file(filename, BUCKET_NAME, filename)
+        app_logger.info(f"Image uploaded successfully to Object Storage: {filename}")
 
-        return jsonify({'meal_plan': meal_plan})
+        image_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': BUCKET_NAME, 'Key': filename},
+            ExpiresIn=3600
+        )
+
+        if insert_receipt(filename, member_id):
+            result = "Image uploaded and receipt info saved"
+            app_logger.info(result)
+        else:
+            result = "Image uploaded but failed to save receipt info"
+            app_logger.warning(result)
+
     except Exception as e:
-        app_logger.error(f"Error in process_receipt: {e}", exc_info=True)
+        app_logger.error(f"Error uploading image: {e}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
 
+    return jsonify({'url': image_url, 'result': result})
 
-# 새로 짠 카메라
+# 영수증 정보 가져오는 함수
 def insert_receipt(receipt_image_url, member_id):
     db_config = {
         'host': os.getenv('DB_HOST'),
@@ -199,49 +226,66 @@ def insert_receipt(receipt_image_url, member_id):
         if connection and connection.is_connected():
             connection.close()
 
-@app.route('/upload_image', methods=['POST'])
-def upload_image():
-    member_id = request.form.get('memberId')
-    image = request.files.get('image')
+'''
+식단 부분
+'''
+# OCR + CLOVA X 진행 함수
+@app.route('/process_receipt', methods=['POST'])
+def process_receipt():
+    image_url = request.json.get('image_url')
+    if not image_url:
+        return jsonify({'error': 'No image URL provided'}), 400
 
-    if not member_id or not image:
-        app_logger.error("Missing member ID or image in request.")
-        return jsonify({'error': 'Missing member ID or image in request'}), 400
-
-    # Generate unique filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"captured_image_{timestamp}.jpg"
-
-    # Save to a temporary location and upload to Object Storage
-    image.save(filename)
     try:
-        s3.upload_file(filename, BUCKET_NAME, filename)
-        app_logger.info(f"Image uploaded successfully to Object Storage: {filename}")
+        # Step 1: OCR 진행
+        app_logger.info(f"Processing image for OCR: {image_url}")
+        ocr_result = process_image_for_ocr(image_url)
 
-        # Generate presigned URL for viewing the image
-        image_url = s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': BUCKET_NAME, 'Key': filename},
-            ExpiresIn=3600
-        )
+        if 'error' in ocr_result:
+            return jsonify({'error': ocr_result['error']}), 500
 
-        # Insert receipt into database
-        if insert_receipt(filename, member_id):
-            result = "Image uploaded and receipt info saved"
-            app_logger.info(result)
-        else:
-            result = "Image uploaded but failed to save receipt info"
-            app_logger.warning(result)
+        # Step 2: CLOVA X 진행
+        meal_plan = display_text_data(ocr_result)
 
+        if not meal_plan:
+            return jsonify({'error': 'Meal plan missing in server response.'}), 500
+
+        # Step 3: 최종 응답값 도출
+        meal_plan_id = save_meal_plan(meal_plan)
+
+        return jsonify({'meal_plan_id': meal_plan_id})
+
+    except (RequestException, ConnectionError, HTTPError, Timeout) as e:
+        app_logger.error(f"Error processing receipt due to connection issue: {e}")
+        return jsonify({'error': 'Failed to connect to the service. Please check your network and try again.'}), 500
+    except IndexError as e:
+        app_logger.error(f"Error processing receipt: {e}")
+        return jsonify({'error': 'Unexpected response format from OCR processing.'}), 500
     except Exception as e:
-        app_logger.error(f"Error uploading image: {e}")
+        app_logger.error(f"Error processing receipt: {e}")
         return jsonify({'error': str(e)}), 500
-    finally:
-        # Clean up local file after upload
-        if os.path.exists(filename):
-            os.remove(filename)
 
-    return jsonify({'url': image_url, 'result': result})
+# 식단 화면
+@app.route('/meal/<meal_plan_id>', methods=['GET'])
+def meal_page(meal_plan_id):
+    meal_plan_data = get_meal_plan(meal_plan_id)
+    app_logger.info(f"Retrieved meal plan: {meal_plan_data}")
+
+    # meal_plan_data가 문자열일 경우 JSON 파싱
+    if isinstance(meal_plan_data, str):
+        try:
+            meal_plan_data = json.loads(meal_plan_data)
+        except json.JSONDecodeError:
+            app_logger.error("Failed to decode meal plan JSON.")
+            return "Invalid meal plan data", 500
+
+    # message 안의 content 가져오기
+    meal_plan_content = meal_plan_data.get('message', {}).get('content', "")
+    if not meal_plan_content:
+        return "Meal plan content missing in server response.", 404
+
+    return render_template('meal.html', meal_plan=meal_plan_content)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

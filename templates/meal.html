@@ -3,15 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Plan</title>
+    <title>Weekly Meal Plan</title>
+    <link rel="stylesheet" href="../static/css/meal.css">
 </head>
 <body>
-    <h1>Weekly Meal Plan</h1>
-    <div>
-        {% for entry in meal_plan %}
-            <p>{{ entry }}</p>
-        {% endfor %}
+    <header>
+        <div class="header-content">
+            <a href="{{ url_for('home') }}" class="back-link">⬅️뒤로가기</a>
+            <h1>👨‍🍳 영수증 셰프 🧾</h1>
+        </div>
+    </header>
+    
+    <h1>👨‍🍳 일주일 식단은 제가 책임질게요 😋</h1>
+    <div id="meal-plan-container" class="meal-plan">
+        <!-- JavaScript로 요일별 식단이 추가될 영역 -->
     </div>
-    <a href="{{ url_for('home') }}">Go back to Home</a>
+
+    <script>
+        // 서버에서 전달된 meal_plan 텍스트 예시
+        const mealPlanText = `{{ meal_plan | safe }}`;
+
+        // 요일별로 텍스트를 분리하고 구조화된 HTML을 생성하여 표시하는 함수
+        function displayMealPlan(text) {
+            const container = document.getElementById('meal-plan-container');
+            const daysOfWeek = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
+            let mealPlanHtml = '';
+            let currentDay = '';
+            let currentContent = '';
+
+            // 줄바꿈을 기준으로 텍스트를 라인별로 분리
+            const lines = text.split('\n');
+
+            lines.forEach(line => {
+                // 요일이 포함된 라인을 찾아 요일별로 구분
+                if (daysOfWeek.some(day => line.includes(day))) {
+                    if (currentDay) {
+                        // 현재 요일과 내용을 HTML에 추가
+                        mealPlanHtml += `
+                            <div class="day-card">
+                                ☀️ <h2 class="day-title"> ${currentDay}</h2>
+                                <div class="recipe-info">${currentContent.trim()}</div>
+                            </div>
+                        `;
+                    }
+                    // 새로운 요일로 초기화
+                    currentDay = line.trim();
+                    currentContent = '';
+                } else {
+                    // 내용이 계속 이어지면 currentContent에 추가
+                    currentContent += line + '<br>';
+                }
+            });
+
+            // 마지막 요일 추가
+            if (currentDay) {
+                mealPlanHtml += `
+                    <div class="day-card">
+                        <h2 class="day-title">${currentDay}</h2>
+                        <div class="recipe-info">${currentContent.trim()}</div>
+                    </div>
+                `;
+            }
+
+            // 생성된 HTML을 컨테이너에 삽입
+            container.innerHTML = mealPlanHtml;
+        }
+
+        // 페이지 로드 시 식단 표시
+        window.onload = () => displayMealPlan(mealPlanText);
+    </script>
 </body>
 </html>
