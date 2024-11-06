@@ -6,6 +6,10 @@ import signal
 import logging
 import bcrypt
 
+from dotenv import load_dotenv
+# 환경 변수 로드
+load_dotenv()
+
 # MySQL 연결 설정
 db_config = {
   'host': os.getenv('DB_HOST'),
