@@ -1,102 +1,115 @@
-/* General reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
-}
-
-body, html {
-    height: 100%;
+/* video.css */
+.header-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background-color: #f5f5f5;
+    gap: 10px;
+}
+.chef-icon, .cart-icon {
+    width: 30px;
+    height: 30px;
 }
 
-.container {
-    width: 360px;
+body {
+    font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: white;
-    border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    background-color: #f5f5f5;
+    margin: 0;
 }
 
 header {
     width: 100%;
-    text-align: center;
-    padding: 10px;
-    background-color: #f5f5f5;
-    font-weight: bold;
-    color: #333;
+    background-color: #3f51b5;
+    color: white;
+    display: flex;
+    justify-content: center;
 }
 
-.camera-view {
+
+
+h1 {
+    font-size: 1.8em;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.video-container {
     position: relative;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #1e88e5;
+    margin-bottom: 20px;
 }
 
-.camera-stream {
+video {
     width: 100%;
-    height: auto;
+    border-radius: 8px;
 }
 
-.footer-controls {
+.controls {
     display: flex;
     justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    padding: 15px;
-    background-color: #3B7EF8;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
+    margin-top: 15px;
 }
 
-.control-button {
-    background-color: white;
+button {
+    background-color: #1e88e5;
+    color: white;
     border: none;
-    color: #3B7EF8;
-    font-size: 24px;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 10px 20px;
+    font-size: 1em;
     cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    width: 120px;
 }
 
-.capture-button {
-    background-color: white;
-    border: none;
-    width: 70px;
-    height: 70px;
+button:hover {
+    background-color: #1565c0;
+}
+
+button:active {
+    background-color: #0d47a1;
+}
+
+button.capture {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5em;
     border-radius: 50%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 0;
+}
+
+.file-input-container {
     display: flex;
-    align-items: center;
     justify-content: center;
+    margin-top: 15px;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.file-input-label {
+    background-color: #404CCF;
+    color: white;
+    padding: 10px 20px;
+    font-size: 1em;
     cursor: pointer;
-    font-size: 24px;
-    color: #3B7EF8;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    text-align: center;
+}
+
+.file-input-label:hover {
+    background-color: #1565c0;
 }
 
 #result {
-    margin: 10px;
-    font-size: 14px;
-    color: #333;
-    text-align: center;
-}
-
-.captured-image {
     margin-top: 10px;
-    max-width: 100%;
-    display: none;
+    color: #333;
+    font-size: 0.9em;
 }

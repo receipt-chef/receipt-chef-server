@@ -98,15 +98,25 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    displayMealPlan(data.meal_plan);
+                    console.log('Received data:', data);  // Debugging line
+
+                    if (data.meal_plan_id) {
+                        // Redirect with meal_plan_id
+                        const mealPlanId = data.meal_plan_id;
+                        console.log('Redirecting to meal plan with ID:', mealPlanId);  // Debugging line
+                        window.location.href = `/meal_plan?meal_plan_id=${mealPlanId}`;
+                    } else {
+                        console.error('Meal plan ID missing in server response.');
+                        alert("Failed to generate meal plan.");
+                    }
                 } else {
                     const errorData = await response.json();
-                    console.error('Error from server:', errorData);  // Log server error for debugging
+                    console.error('Error from server:', errorData);
                     alert(`Error: ${errorData.error}`);
                 }
             } catch (error) {
-                console.error('Error processing receipt:', error);
-                alert('Error processing receipt.');
+                console.error('Error in processReceipt:', error);
+                alert('An error occurred while processing the receipt.');
             }
         }
 

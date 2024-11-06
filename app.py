@@ -1,11 +1,18 @@
 from flask import Flask, request, render_template, redirect, url_for, jsonify, flash, session
 from database import get_receipt_links, register_user, authenticate_user
 from ocr import process_image_for_ocr, display_text_data
-from video import generate_frames, capture_and_upload
+from datetime import datetime
+import mysql.connector
+from mysql.connector import Error
+# from video import generate_frames, capture_and_upload
+
 from dotenv import load_dotenv
 from flask import Response
 import boto3
 import os
+from video import video_bp
+
+app = Flask(__name__)
 
 # .env 파일 로드
 load_dotenv()
@@ -14,11 +21,13 @@ load_dotenv()
 import logging
 from logging.handlers import RotatingFileHandler
 
-app_logger = logging.getLogger('app')
-# app_logger.setLevel(logging.DEBUG)
-app_logger.setLevel(logging.INFO)
+# Register the Blueprint for video routes
+app.register_blueprint(video_bp, url_prefix='/video')
+
 
 # 파일 핸들러 (애플리케이션 로그용)
+app_logger = logging.getLogger('app')
+app_logger.setLevel(logging.INFO)
 file_handler = RotatingFileHandler('app.log', maxBytes=1024 * 1024 * 100, backupCount=20)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 app_logger.addHandler(file_handler)
@@ -32,7 +41,6 @@ logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
 ACCESS_KEY = os.getenv("ACCESS_KEY")
@@ -150,26 +158,90 @@ def process_receipt():
         return jsonify({'error': str(e)}), 500
 
 
-# 사진 촬영
-@app.route('/video')
-def video():
-  app_logger.info("Index page accessed")
-  return render_template('video.html')
+# 새로 짠 카메라
+def insert_receipt(receipt_image_url, member_id):
+    db_config = {
+        'host': os.getenv('DB_HOST'),
+        'user': os.getenv('DB_USER'),
+        'password': os.getenv('DB_PASSWORD'),
+        'database': os.getenv('DB_NAME')
+    }
 
-@app.route('/video_feed')
-def video_feed():
-  app_logger.info("Video feed accessed")
-  return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    connection = None
+    try:
+        # Establish the database connection
+        connection = mysql.connector.connect(**db_config)
+        if connection.is_connected():
+            cursor = connection.cursor()
 
-@app.route('/capture', methods=['POST'])
-def capture():
-  app_logger.info("Capture route accessed")
-  try:
-      url, result = capture_and_upload()
-      return jsonify({'url': url, 'result': result})
-  except Exception as e:
-      app_logger.error(f"Error in capture route: {str(e)}")
-      return jsonify({'error': str(e)}), 500
+            # Check if member_id exists in MEMBER table
+            check_member_query = "SELECT 1 FROM MEMBER WHERE member_no = %s"
+            cursor.execute(check_member_query, (member_id,))
+            if not cursor.fetchone():
+                app_logger.error(f"Member ID {member_id} does not exist in MEMBER table.")
+                return False
+
+            # Insert query for the receipt
+            insert_query = "INSERT INTO RECEIPT (receipt_file_path, member_no) VALUES (%s, %s)"
+            cursor.execute(insert_query, (receipt_image_url, member_id))
+            connection.commit()
+            
+            app_logger.info("Receipt info inserted successfully.")
+            return True
+
+    except Error as e:
+        app_logger.error(f"Error inserting receipt info: {e}")
+        return False
+
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+@app.route('/upload_image', methods=['POST'])
+def upload_image():
+    member_id = request.form.get('memberId')
+    image = request.files.get('image')
+
+    if not member_id or not image:
+        app_logger.error("Missing member ID or image in request.")
+        return jsonify({'error': 'Missing member ID or image in request'}), 400
+
+    # Generate unique filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"captured_image_{timestamp}.jpg"
+
+    # Save to a temporary location and upload to Object Storage
+    image.save(filename)
+    try:
+        s3.upload_file(filename, BUCKET_NAME, filename)
+        app_logger.info(f"Image uploaded successfully to Object Storage: {filename}")
+
+        # Generate presigned URL for viewing the image
+        image_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': BUCKET_NAME, 'Key': filename},
+            ExpiresIn=3600
+        )
+
+        # Insert receipt into database
+        if insert_receipt(filename, member_id):
+            result = "Image uploaded and receipt info saved"
+            app_logger.info(result)
+        else:
+            result = "Image uploaded but failed to save receipt info"
+            app_logger.warning(result)
+
+    except Exception as e:
+        app_logger.error(f"Error uploading image: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        # Clean up local file after upload
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    return jsonify({'url': image_url, 'result': result})
 
 if __name__ == '__main__':
     app.run(debug=True)

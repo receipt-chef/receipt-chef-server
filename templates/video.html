@@ -3,47 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Stream and Capture</title>
+    <title>Capture or Upload Image</title>
     <link rel="stylesheet" href="../static/css/video.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 </head>
 <body>
-    <div class="container">
-        <header>카메라 촬영</header>
-        <div class="camera-view">
-            <img src="{{ url_for('video_feed') }}" alt="Camera Stream" class="camera-stream">
+    <header>
+        <div class="header-content">
+            <img src="../static/images/chef-icon.png" alt="Chef Icon" class="chef-icon">
+            <h1>영수증 셰프</h1>
+            <img src="../static/images/cart.png" alt="Cart Icon" class="cart-icon">
         </div>
-        <div class="footer-controls">
-            <button class="control-button" id="cancelBtn">&#10005;</button> <!-- Cancel button -->
-            <button class="capture-button" id="captureBtn">&#9679;</button> <!-- Capture button -->
-            <button class="control-button" id="confirmBtn">&#10003;</button> <!-- Confirm button -->
-        </div>
-        <p id="result"></p>
-        <img id="capturedImage" style="display:none;" class="captured-image">
+    </header>
+
+    <!-- Camera Capture -->
+    <!-- <button onclick="startCamera()">Start Camera</button>
+    <video id="video" width="300" height="200" autoplay></video>
+    <button onclick="captureImage()">Capture</button> -->
+
+    <!-- File Upload -->
+    <div class="file-input-container">
+        <label for="fileInput" class="file-input-label">Upload Image</label>
+        <input type="file" id="fileInput" accept="image/*" onchange="uploadImage(this.files[0])">
     </div>
+    
+
+    <div id="result"></div>
 
     <script>
-        $(document).ready(function() {
-            $('#captureBtn').click(function() {
-                const memberId = localStorage.getItem('userId'); // Get member_no from localStorage
-                
-                if (!memberId) {
-                    alert("User ID not found. Please log in.");
-                    return;
-                }
+        const video = document.getElementById('video');
 
-                $.post('/capture', { memberId: memberId }, function(data) {
-                    $('#result').text(data.result);
-                    if (data.url) {
-                        $('#capturedImage').attr('src', data.url).show();
-                        window.location.href = '/home';
-                    } else {
-                        $('#capturedImage').hide();
-                        alert("Image upload failed. Please try again.");
-                    }
-                });
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Camera access is required to capture images.');
+            }
+        }
+
+        function captureImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob((blob) => {
+                uploadImage(blob);
+            }, 'image/jpeg');
+        }
+
+        function uploadImage(imageBlob) {
+            const formData = new FormData();
+
+            // Retrieve `userId` from local storage and set as `memberId`
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert("User ID not found. Please log in.");
+                return;
+            }
+
+            formData.append('image', imageBlob);
+            formData.append('memberId', userId);  // Send userId as memberId to the backend
+
+            fetch('/upload_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result && !data.error) {
+                    // Redirect to home.html if the upload was successful
+                    window.location.href = '/home';
+                } else {
+                    // Display error if there was an issue
+                    document.getElementById('result').innerText = data.error || 'Error uploading image.';
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Failed to upload image.');
             });
-        });
+        }
     </script>
 </body>
 </html>
