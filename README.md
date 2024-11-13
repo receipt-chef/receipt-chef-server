@@ -38,46 +38,33 @@ NIPA-NAVER 플랫폼 Tech 교육 중 진행한 프로젝트입니다.
 - 인프라 : Naver Cloud, Object Storage, Naver Cloud Developer Tools
 - AI : Clova X, Clova OCR
 <br>
-<br>
 
 ## 서비스 아키텍처 📝
 ###  🏛 Infra - Naver Cloud
 <img src="https://github.com/user-attachments/assets/c9ec06b5-768d-40a5-bee2-5137ec7243bc" width="90%"/>
 
 ### 1. Developer Tools
-- SourceCommit, SourceBuild, SourceDeploy, SourcePipeline 
-- 파이프라인 작성하여 CI/CD로 배포 자동화 구축
-<br>
+- 네이버 클라우드의 SourceCommit, SourceBuild, SourceDeploy, SourcePipeline 서비스를 사용하여 CI/CD 파이프라인을 구축하고 배포를 자동화.
 
 ### 2. AI
-- 네이버 클라우드의 API Gateway를 사용해 Clova OCR, Clova X 연동
-- Object Storage에 저장된 마트 영수증을 Clova OCR로 텍스트 추출
-- "OCR 추출 텍스트 + 프롬프트" 로 Clova X 에게 요일별 식단 추천받기
-<br>
+- API Gateway를 통해 CLOVA OCR 및 CLOVA X 서비스를 연동.
+- 마트 영수증 이미지를 Object Storage에 저장한 후 CLOVA OCR을 사용해 텍스트를 추출.
+- 추출된 텍스트와 프롬프트 데이터를 CLOVA X에 전달하여 요일별 맞춤형 식단을 생성.
 
 ### 3. 로드밸런서
-- web1, web2로 서버 이중화 구성하여 로드밸런서로 부하 분산
-- 로드밸런싱 알고리즘 : 라운드 로빈 알고리즘 + sticky session
-<br>
+- 두 개의 웹 서버(web1, web2)로 이중화 구성하고 로드밸런서를 통해 트래픽 분산 처리.
+- 라운드 로빈 알고리즘과 sticky session을 사용하여 부하 분산 최적화.
 
 ### 4. 보안
-- 서버를 프라이빗에 구축해 개발자는 SSL VPN을 사용하여 접근
-- Security Monitoring (IDS, IPS, Anti-Virus) 사용하여 모니터링
+- 서버를 프라이빗 네트워크 환경에 구축하고, 개발자는 SSL VPN을 통해 접근.
+- IDS, IPS, 안티바이러스(Security Monitoring)를 활용하여 보안 상태를 모니터링.
 
 <br>
 
 ## 페이지별 기능 📝
 
-### 🎥 메인, 회원가입, 로그인
-- 서비스 접속 초기화면입니다.
-- 회원가입 시에 유저의 개인 음식 취향 및 질병을 등록합니다. 
-
-<div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/0d66f54f-3e3a-4aef-b52c-1330de1ba886" width="70%"/></div>
-
-### 🎥 영수증 등록
-- 마트 영수증 사진을 직접 촬영하거나, 갤러리에서 이미지를 등록합니다.
-<div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/81678710-81c1-464a-8ab4-0c232a135c52" width="70%"/></div>
-
-### 🎥 식단 추출
-- 개인 맞춤형 일주일 식단을 추천받을 수 있습니다.
-<div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/a343deb9-f3d0-4019-8ec6-1acc721efd08" width="70%"/></div>
+| 페이지         | 화면                                                                                               |
+|----------------|----------------------------------------------------------------------------------------------------|
+| 회원 | <div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/0d66f54f-3e3a-4aef-b52c-1330de1ba886" width="70%"/></div> |
+| 영수증 등록     | <div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/81678710-81c1-464a-8ab4-0c232a135c52" width="70%"/></div> |
+| 식단 추출       | <div style="display: flex; justify-content: center; gap: 20px;"><img src="https://github.com/user-attachments/assets/a343deb9-f3d0-4019-8ec6-1acc721efd08" width="70%"/></div> |
